@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Logs
+logs/
+*.log
+
+# Data
+data/
+mysql*/
+
+# Documentation
+README*.md
+*.md
+Freeradius_documentation/
+Freeradius_proxy_configs/
+
+# Temporary files
+temp_*/
+*.tmp
+*.temp
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Environment files
+.env*
+env-*
+
+# Scripts
+*.bat
+*.ps1
+*.sh
+
+# Keep configs for copying into containers
+# configs/
+
+# Reference directory
+freeradius-docker_reference_only_previous_working_production/

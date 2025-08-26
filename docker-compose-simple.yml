@@ -1,0 +1,378 @@
+version: '3.8'
+
+# Simple FreeRADIUS Docker Environment for Testing
+# Features:
+# - High Availability Load Balancers (loadbalancer1 + loadbalancer2 with smart failover)
+# - Multiple RADIUS servers (radius1, radius2, radius3)
+# - External MySQL database (your local MySQL Workbench)
+# - ETCD for centralized configuration management
+# - Optional: Graylog + Zabbix monitoring (commented out)
+
+# Define networks for proper isolation and security
+networks:
+  # External network for client connections
+  external:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  
+  # Internal network for load balancers and RADIUS servers
+  internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+  
+  # Management network for monitoring and administration
+  management:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+
+# Define volumes for persistent data
+volumes:
+  # ETCD data persistence
+  etcd_data:
+    driver: local
+  
+  # RADIUS logs persistence
+  radius_logs:
+    driver: local
+  
+  # Load balancer logs persistence
+  lb_logs:
+    driver: local
+
+services:
+  # ============================================================================
+  # ETCD - Centralized Configuration Management
+  # ============================================================================
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.9
+    container_name: freeradius-etcd
+    environment:
+      - ETCD_NAME=freeradius-etcd
+      - ETCD_DATA_DIR=/var/lib/etcd
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd:2380
+      - ETCD_INITIAL_CLUSTER=freeradius-etcd=http://etcd:2380
+      - ETCD_INITIAL_CLUSTER_STATE=new
+      - ETCD_INITIAL_CLUSTER_TOKEN=freeradius-cluster
+    volumes:
+      - etcd_data:/var/lib/etcd
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    networks:
+      - management
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================================================
+  # FAILOVER ROUTER - Smart routing between load balancers
+  # ============================================================================
+  failover-router:
+    build:
+      context: ./failover-router
+      dockerfile: Dockerfile
+    container_name: freeradius-failover-router
+    environment:
+      - PRIMARY_LB=loadbalancer1
+      - BACKUP_LB=loadbalancer2
+      - EXTERNAL_MYSQL_HOST=${EXTERNAL_MYSQL_HOST:-host.docker.internal}
+      - EXTERNAL_MYSQL_PORT=${EXTERNAL_MYSQL_PORT:-3306}
+    volumes:
+      - /var/log/failover:/var/log/failover
+    ports:
+      - "1812:1812/udp"  # Primary RADIUS port
+      - "1813:1813/udp"  # Primary accounting port
+    networks:
+      - external
+      - internal
+    depends_on:
+      - loadbalancer1
+      - loadbalancer2
+    restart: unless-stopped
+    privileged: true  # Required for iptables
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "1812"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================================
+  # RADIUS SERVERS - Individual RADIUS instances
+  # ============================================================================
+  radius1:
+    build:
+      context: .
+      dockerfile: radius1/Dockerfile
+    container_name: freeradius-radius1
+    environment:
+      - RADIUS_SERVER_ID=radius1
+      - DEBUG_MODE=${RADIUS1_DEBUG:-false}
+      - ETCD_ENDPOINTS=http://etcd:2379
+      - EXTERNAL_MYSQL_HOST=${EXTERNAL_MYSQL_HOST:-host.docker.internal}
+      - EXTERNAL_MYSQL_PORT=${EXTERNAL_MYSQL_PORT:-3306}
+      - EXTERNAL_MYSQL_USER=${EXTERNAL_MYSQL_USER:-radius}
+      - EXTERNAL_MYSQL_PASSWORD=${EXTERNAL_MYSQL_PASSWORD:-RadiusPass123!}
+      - EXTERNAL_MYSQL_DATABASE=${EXTERNAL_MYSQL_DATABASE:-radius}
+    volumes:
+      - radius_logs:/var/log/radius
+    networks:
+      - internal
+      - management
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "radtest", "test", "test", "localhost:1812", "0", "testing123"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  radius2:
+    build:
+      context: .
+      dockerfile: radius2/Dockerfile
+    container_name: freeradius-radius2
+    environment:
+      - RADIUS_SERVER_ID=radius2
+      - DEBUG_MODE=${RADIUS2_DEBUG:-false}
+      - ETCD_ENDPOINTS=http://etcd:2379
+      - EXTERNAL_MYSQL_HOST=${EXTERNAL_MYSQL_HOST:-host.docker.internal}
+      - EXTERNAL_MYSQL_PORT=${EXTERNAL_MYSQL_PORT:-3306}
+      - EXTERNAL_MYSQL_USER=${EXTERNAL_MYSQL_USER:-radius}
+      - EXTERNAL_MYSQL_PASSWORD=${EXTERNAL_MYSQL_PASSWORD:-RadiusPass123!}
+      - EXTERNAL_MYSQL_DATABASE=${EXTERNAL_MYSQL_DATABASE:-radius}
+    volumes:
+      - radius_logs:/var/log/radius
+    networks:
+      - internal
+      - management
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "radtest", "test", "test", "localhost:1812", "0", "testing123"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  radius3:
+    build:
+      context: .
+      dockerfile: radius3/Dockerfile
+    container_name: freeradius-radius3
+    environment:
+      - RADIUS_SERVER_ID=radius3
+      - DEBUG_MODE=${RADIUS3_DEBUG:-false}
+      - ETCD_ENDPOINTS=http://etcd:2379
+      - EXTERNAL_MYSQL_HOST=${EXTERNAL_MYSQL_HOST:-host.docker.internal}
+      - EXTERNAL_MYSQL_PORT=${EXTERNAL_MYSQL_PORT:-3306}
+      - EXTERNAL_MYSQL_USER=${EXTERNAL_MYSQL_USER:-radius}
+      - EXTERNAL_MYSQL_PASSWORD=${EXTERNAL_MYSQL_PASSWORD:-RadiusPass123!}
+      - EXTERNAL_MYSQL_DATABASE=${EXTERNAL_MYSQL_DATABASE:-radius}
+    volumes:
+      - radius_logs:/var/log/radius
+    networks:
+      - internal
+      - management
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "radtest", "test", "test", "localhost:1812", "0", "testing123"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================================================
+  # LOAD BALANCERS - High Availability with failover
+  # ============================================================================
+  loadbalancer1:
+    build:
+      context: .
+      dockerfile: loadbalancer/Dockerfile
+    container_name: freeradius-loadbalancer1
+    environment:
+      - LB_ID=lb1
+      - LB_PRIORITY=100
+      - DEBUG_MODE=${LB1_DEBUG:-false}
+      - ETCD_ENDPOINTS=http://etcd:2379
+      - EXTERNAL_MYSQL_HOST=${EXTERNAL_MYSQL_HOST:-host.docker.internal}
+      - EXTERNAL_MYSQL_PORT=${EXTERNAL_MYSQL_PORT:-3306}
+    volumes:
+      - lb_logs:/var/log/radius
+    ports:
+      - "2812:1812/udp"  # Secondary port for direct access
+      - "2813:1813/udp"
+    networks:
+      - external
+      - internal
+      - management
+    depends_on:
+      - radius1
+      - radius2
+      - radius3
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "radtest", "test", "test", "localhost:1812", "0", "testing123"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  loadbalancer2:
+    build:
+      context: .
+      dockerfile: loadbalancer2/Dockerfile
+    container_name: freeradius-loadbalancer2
+    environment:
+      - LB_ID=lb2
+      - LB_PRIORITY=200
+      - DEBUG_MODE=${LB2_DEBUG:-false}
+      - ETCD_ENDPOINTS=http://etcd:2379
+      - EXTERNAL_MYSQL_HOST=${EXTERNAL_MYSQL_HOST:-host.docker.internal}
+      - EXTERNAL_MYSQL_PORT=${EXTERNAL_MYSQL_PORT:-3306}
+    volumes:
+      - lb_logs:/var/log/radius
+    ports:
+      - "3812:1812/udp"  # Tertiary port for direct access
+      - "3813:1813/udp"
+    networks:
+      - external
+      - internal
+      - management
+    depends_on:
+      - radius1
+      - radius2
+      - radius3
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "radtest", "test", "test", "localhost:1812", "0", "testing123"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================================================
+  # OPTIONAL MONITORING SERVICES (Commented out for simple testing)
+  # ============================================================================
+  
+  # Uncomment these services when you want to add monitoring
+  
+  # # Graylog for centralized logging
+  # graylog:
+  #   image: graylog/graylog:5.3
+  #   container_name: freeradius-graylog
+  #   environment:
+  #     - GRAYLOG_PASSWORD_SECRET=somepasswordpepper
+  #     - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+  #     - GRAYLOG_HTTP_EXTERNAL_URI=http://127.0.0.1:9000/
+  #   volumes:
+  #     - graylog_data:/usr/share/graylog/data
+  #   ports:
+  #     - "9000:9000"   # Web interface
+  #     - "12201:12201/udp"  # GELF UDP
+  #     - "1514:1514"   # Syslog TCP
+  #     - "1514:1514/udp"   # Syslog UDP
+  #   networks:
+  #     - management
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - mongodb
+  #     - elasticsearch
+
+  # # MongoDB for Graylog
+  # mongodb:
+  #   image: mongo:6.0
+  #   container_name: freeradius-mongodb
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #   networks:
+  #     - management
+  #   restart: unless-stopped
+
+  # # Elasticsearch for Graylog
+  # elasticsearch:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+  #   container_name: freeradius-elasticsearch
+  #   environment:
+  #     - discovery.type=single-node
+  #     - xpack.security.enabled=false
+  #     - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+  #   volumes:
+  #     - elasticsearch_data:/usr/share/elasticsearch/data
+  #   networks:
+  #     - management
+  #   restart: unless-stopped
+
+  # # Zabbix Server
+  # zabbix-server:
+  #   image: zabbix/zabbix-server-mysql:ubuntu-6.4-latest
+  #   container_name: freeradius-zabbix-server
+  #   environment:
+  #     - DB_SERVER_HOST=${EXTERNAL_MYSQL_HOST:-host.docker.internal}
+  #     - DB_SERVER_PORT=${EXTERNAL_MYSQL_PORT:-3306}
+  #     - DB_SERVER_DBNAME=zabbix
+  #     - DB_SERVER_USER=zabbix
+  #     - DB_SERVER_PASS=zabbix_password
+  #   volumes:
+  #     - zabbix_data:/var/lib/zabbix
+  #   ports:
+  #     - "10051:10051"
+  #   networks:
+  #     - management
+  #   restart: unless-stopped
+
+  # # Zabbix Web Interface
+  # zabbix-web:
+  #   image: zabbix/zabbix-web-nginx-mysql:ubuntu-6.4-latest
+  #   container_name: freeradius-zabbix-web
+  #   environment:
+  #     - DB_SERVER_HOST=${EXTERNAL_MYSQL_HOST:-host.docker.internal}
+  #     - DB_SERVER_PORT=${EXTERNAL_MYSQL_PORT:-3306}
+  #     - DB_SERVER_DBNAME=zabbix
+  #     - DB_SERVER_USER=zabbix
+  #     - DB_SERVER_PASS=zabbix_password
+  #     - PHP_TZ=UTC
+  #   ports:
+  #     - "8080:8080"
+  #   networks:
+  #     - management
+  #   restart: unless-stopped
+
+  # # Zabbix Agent for monitoring
+  # zabbix-agent:
+  #   image: zabbix/zabbix-agent2:ubuntu-6.4-latest
+  #   container_name: freeradius-zabbix-agent
+  #   environment:
+  #     - ZBX_HOSTNAME=freeradius-host
+  #     - ZBX_SERVER_HOST=zabbix-server
+  #   volumes:
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #     - /dev:/host/dev:ro
+  #   ports:
+  #     - "10050:10050"
+  #   networks:
+  #     - management
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - zabbix-server
+
+# Additional volumes for optional monitoring services
+# volumes:
+#   mongodb_data:
+#     driver: local
+#   elasticsearch_data:
+#     driver: local
+#   zabbix_data:
+#     driver: local
