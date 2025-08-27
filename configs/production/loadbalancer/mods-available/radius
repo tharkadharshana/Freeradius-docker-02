@@ -1,0 +1,109 @@
+# -*- text -*-
+#
+#  $Id$
+
+#
+#  The RADIUS module implements proxying and replication of packets.
+#
+radius {
+	# Transport protocol.
+	transport = udp
+
+	# Connection timeout in seconds
+	connect_timeout = 3.0
+
+	# Shared secret for radius protocol
+	shared_secret = testing123456789
+
+	# Status checks for home servers
+	status_checks = yes
+
+	#
+	#  To replicate packets to multiple servers, enable this section.
+	#  Packets will be sent to the server which is declared first,
+	#  and then a "duplicate" of the packet will be sent to the second
+	#  server, etc.
+	#
+	#  Note that in all cases, only the FIRST reply is cached.
+	#  The replies from the other servers are discarded.
+	#
+	#  It also means that the first server MUST be active, other
+	#  servers will only receive "duplicate" packets.
+	#
+	#  i.e. this configuration will NOT do automatic fail-over.
+	#
+#	replicate = {
+#		transport = udp
+#
+#		# Connection timeout in seconds
+#		connect_timeout = 3.0
+#
+#		# Shared secret for radius protocol
+#		#shared_secret = "testing123-2"
+#
+#		acct_timeout = 3
+#		auth_timeout = 3
+#
+#		synchronous = no
+#
+#		# List of hosts for duplication
+#		host = {
+#			ipaddr = 127.0.0.1
+#			port = 1812
+#			secret = testing123-2
+#		}
+#	}
+
+	# Connection pool size
+	pool {
+		# Number of connections to start
+		start = ${thread[pool].max_servers}
+
+		# Minimum number of connections to keep open
+		min = ${thread[pool].min_spare_servers}
+
+		# Maximum number of connections
+		#
+		# If these connections are all in use and a new one
+		# is requested, the request will NOT get a connection.
+		#
+		# NOTE: This should be greater than or equal to "max_servers"
+		#       including any "spare" servers which you also have.
+		#
+		# 30 is not really a useful number.  However, it should be
+		# enough for testing.
+		max = 30
+
+		# Spare connections to be left idle
+		#
+		# NOTE: Idle connections WILL be closed if "idle_timeout"
+		# is set.  This should be less than or equal to "max_servers".
+		spare = ${thread[pool].max_spare_servers}
+
+		# Number of uses before the connection is closed
+		#
+		# 0 means "infinity"
+		uses = 0
+
+		# The lifetime (in seconds) of the connection
+		#
+		# 0 means "infinity"
+		lifetime = 0
+
+		# The idle timeout (in seconds).  A connection which is
+		# unused for this length of time will be closed.
+		#
+		# 0 means "infinity"
+		idle_timeout = 0
+
+		# NOTE: All configuration settings are enforced.  If a
+		# connection is closed because of "idle_timeout",
+		# "uses", or "lifetime", then the total number of
+		# connections MAY fall below "min".  When that
+		# happens, it will open a new connection.  It will
+		# also log a WARNING message.
+		#
+		# The solution is to either lower the "min" connections,
+		# or increase lifetime/idle_timeout.
+	}
+} 

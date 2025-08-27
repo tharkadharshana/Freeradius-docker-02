@@ -1,0 +1,79 @@
+server ent_lte {
+#listen {
+#  type = auth
+#  ipaddr = *
+#  port = 1812
+#  ...
+#}
+
+authorize {
+  # Conditionally select policy
+  if (&3GPP-IMEISV) {
+    lte_auth_policy
+    lte_auth_log
+  }
+  else {
+    ent_auth_policy
+    ent_auth_log
+  }
+  pap
+}
+
+
+authenticate {
+  Auth-Type PAP {
+  # LTE: Simple accept
+  if (&3GPP-IMEISV) {
+    ok
+  }
+  # ENT: Strict PAP validation
+  else {
+    pap {
+      reject = 1
+    }
+    if (reject) {
+      update reply {
+        Reply-Message := "Password failure"
+      }
+    }
+  }
+}    
+}
+
+
+accounting {
+  # Use LTE or ENT accounting based on context
+  if (&3GPP-IMEISV) {
+    lte_accounting
+    lte_sql
+  }
+  else {
+    ent_accounting
+  }
+}
+
+post-auth {
+  # Common logic for both policies
+  if (session-state:User-Name && reply:User-Name && request:User-Name && (reply:User-Name == request:User-Name)) {
+    update reply {
+      &User-Name !* ANY
+    }
+  }
+  update {
+    &reply: += &session-state:
+  }
+
+  # Handle rejects
+  Post-Auth-Type REJECT {
+    attr_filter.access_reject
+  }
+
+  # Logging
+  if (&3GPP-IMEISV) {
+    lte_reply_log
+  }
+  else {
+    ent_reply_log
+  }
+}
+}

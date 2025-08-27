@@ -1,0 +1,148 @@
+gpon_auth_policy_b {
+    if (request:Packet-Type == Access-Request) {
+    	# Ensure both User-Name and User-Password are provided in the request
+	if (!&User-Name || !&CHAP-Password) {
+		update reply {
+			&Module-Failure-Message += "Missing User-Name or User-Password"
+		}
+		reject
+	}
+    }
+ 
+   # reject all whitespace
+   # e.g. "user@ site.com", or "us er", or " user", or "user "  
+   if (&User-Name =~ / /) {
+        update reply {
+            &Module-Failure-Message += "Invalid User-Name"
+        }
+        reject
+    }
+ 
+   
+    # reject mixed case e.g. "UseRNaMe"
+    if (&User-Name != "%{tolower:%{User-Name}}") {
+        reject
+    }
+ 
+        
+    # reject Multiple @'s
+    # e.g. "user@site.com@site.com"
+    if (&User-Name =~ /@[^@]*@/ ) {
+        update request {
+            &Module-Failure-Message += 'Rejected: Multiple @ in User-Name'
+        }
+        reject
+    }
+ 
+ 
+    # reject double dots
+    # e.g. "user@site..com"
+    if (&User-Name =~ /\.\./ ) {
+        update request {
+            &Module-Failure-Message += 'Rejected: User-Name contains multiple ..s'
+        }
+        reject
+    }
+ 
+ 
+    # must have at least 1 string-dot-string after @
+    # e.g. "user@site.com"
+    if ((&User-Name =~ /@/) && (&User-Name !~ /@(.+)\.(.+)$/))  {
+        update request {
+            &Module-Failure-Message += 'Rejected: Realm does not have at least one dot separator'
+        }
+        reject
+    }
+ 
+    # Realm ends with a dot
+    # e.g. "user@site.com."
+    if (&User-Name =~ /\.$/)  {
+        update request {
+            &Module-Failure-Message += 'Rejected: Realm ends with a dot'
+        }
+        reject
+    }
+ 
+    # Realm begins with a dot
+    # e.g. "user@.site.com"
+    if (&User-Name =~ /@\./)  {
+        update request {
+            &Module-Failure-Message += 'Rejected: Realm begins with a dot'
+        }
+        reject
+    }
+
+    # Add @ to User-Name if it doesn't exist
+    if (&User-Name !~ /@/) {
+            update request {
+                User-Name := "%{User-Name}@"
+            }
+        }
+ 
+    if (&User-Name) {
+        update control {
+            Tmp-String-0 := "%{User-Name}"  # Store the original username
+        }
+ 
+        # Extract the portion before '@'
+        if ("%{&control:Tmp-String-0}" =~ /^([^@]+)@/) {
+            update control {
+                Tmp-String-1 := "%{1}"  # Store the part before '@'
+            }
+        } else {
+            update reply {
+                &Module-Failure-Message += "Invalid username format: Missing '@'"
+            }
+            reject
+        }
+    
+        # Extract the last 9 digits
+        if ("%{&control:Tmp-String-1}" =~ /.*(\w{9})$/) {
+            update request {
+                User-Name := "94%{1}"  # Prefix '94' to the last 9 digits
+            }
+        } else {
+            update reply {
+                &Module-Failure-Message += "Invalid username format: No valid digits found"
+            }
+            reject
+        }
+    }
+ 
+
+    # First check if user data is in cache
+    cache
+    
+    # If cache hit, skip SQL query and proceed
+    if (ok) {
+        # Debug log for monitoring cache hits
+        update request {
+            &Module-Failure-Message += 'Cache hit for User-Name: %{User-Name}'
+        }
+    } else {
+        # Cache miss, perform SQL query
+        gpon_sql
+#       cache
+
+        if (request:Packet-Type == Access-Request) {
+
+            # Check if the SQL module successfully found a matching user
+            if (!ok) {
+                
+                # No user found in the database
+                update reply {
+                    Reply-Message := "User not found"
+                }
+                reject
+#            } else {
+#                update control {
+#		    Cache-Merge := "yes"
+#                    Simultaneous-Session-Status := %{&control:Simultaneous-Session-Status}
+#                    Barring-Status := %{&control:Barring-Status}
+#                    Cleartext-Password := %{&control:Cleartext-Password}
+#                }
+            }
+#	    cache  
+      	}
+    }
+}

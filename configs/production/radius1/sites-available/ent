@@ -1,0 +1,89 @@
+server ent {
+#listen {
+#	type = auth
+#	ipaddr = *
+#	port = 1812
+#	limit {
+#	      max_connections = 16
+#	      lifetime = 0
+#	      idle_timeout = 30
+#	}
+#}
+
+#listen {
+#	ipaddr = *
+#	port = 1813
+#	type = acct
+#
+#	limit {
+#	}
+#}
+
+authorize {
+	ent_auth_policy
+	pap
+	ent_auth_log
+}
+
+authenticate {
+	Auth-Type PAP {
+		pap{
+			reject = 1
+		}
+
+		if (reject) {
+			update reply {
+				Reply-Message := "Password failure"
+			}
+		}
+	}
+}
+
+preacct {
+
+}
+
+accounting {
+	ent_auth_policy
+	ent_accounting
+}
+
+session {
+#	sql
+}
+
+post-auth {
+	barred_user_policy
+	ent_sql
+
+	if (session-state:User-Name && reply:User-Name && request:User-Name && (reply:User-Name == request:User-Name)) {
+		update reply {
+			&User-Name !* ANY
+		}
+	}
+	update {
+		&reply: += &session-state:
+	}
+
+	Post-Auth-Type REJECT {
+		attr_filter.access_reject
+	}
+
+	Post-Auth-Type Challenge {
+	}
+
+	Post-Auth-Type Client-Lost {
+	}
+
+	ent_reply_log
+}
+
+pre-proxy {
+
+}
+
+post-proxy {
+
+
+}
+}

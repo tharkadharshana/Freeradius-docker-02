@@ -1,0 +1,21 @@
+server status {
+    listen {
+        type = status
+        ipaddr = *
+        port = 18121
+    }
+
+    authorize {
+        # Just return success
+    }
+
+    authenticate {
+        # Just return success
+    }
+
+    # Handles Status-Server packets
+    recv Status-Server {
+        # Reply to the request
+        handled = 1
+    }
+} 

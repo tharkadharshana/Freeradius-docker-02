@@ -1,0 +1,30 @@
+server status {
+    namespace = radius
+    listen {
+        transport = udp
+        udp {
+            ipaddr = *
+            port = 18121
+        }
+
+        type = Status-Server
+    }
+
+    # Clients allowed to query status
+    client localhost {
+        ipaddr = 127.0.0.1
+        secret = testing123
+    }
+
+    # Allow the loadbalancer to check our status
+    client loadbalancer {
+        ipaddr = loadbalancer
+        secret = testing123456789
+    }
+
+    recv Status-Server {
+        # Add statistics based on query attributes
+        stats
+        ok
+    }
+} 

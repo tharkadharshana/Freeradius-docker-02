@@ -1,0 +1,29 @@
+# -*- text -*-
+##
+## proxy -- proxy requests to backend RADIUS servers
+##
+
+server proxy {
+        listen {
+                type = auth
+                ipaddr = *
+                port = 1814  # Changed from 0 to 1814 to avoid port conflicts
+        }
+
+        authorize {
+                preprocess
+                # realm  # Temporarily commented out to allow LoadBalancer1 to start
+        }
+
+        authenticate {
+                # Authentication is handled by backend servers
+        }
+
+        pre-proxy {
+                # Pre-proxy processing
+        }
+
+        post-proxy {
+                # Post-proxy processing
+        }
+} 

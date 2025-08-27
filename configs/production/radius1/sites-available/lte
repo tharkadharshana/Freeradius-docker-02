@@ -1,0 +1,71 @@
+server lte {
+#listen {
+#	type = auth
+#	ipaddr = *
+#	port = 1812
+#	limit {
+#	      max_connections = 16
+#	      lifetime = 0
+#	      idle_timeout = 30
+#	}
+#}
+
+#listen {
+#	ipaddr = *
+#	port = 1813
+#	type = acct
+#
+#	limit {
+#	}
+#}
+
+authorize {
+	lte_auth_log
+}
+
+authenticate {
+}
+
+preacct {
+}
+
+accounting {
+	lte_accounting
+    lte_sql
+}
+
+session {
+
+}
+
+post-auth {
+
+	if (session-state:User-Name && reply:User-Name && request:User-Name && (reply:User-Name == request:User-Name)) {
+		update reply {
+			&User-Name !* ANY
+		}
+	}
+	update {
+		&reply: += &session-state:
+	}
+
+	Post-Auth-Type REJECT {
+		attr_filter.access_reject
+	}
+
+	Post-Auth-Type Challenge {
+	}
+
+	Post-Auth-Type Client-Lost {
+	}
+
+	lte_reply_log
+}
+
+pre-proxy {
+}
+
+post-proxy {
+
+}
+}

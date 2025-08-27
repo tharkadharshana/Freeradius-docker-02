@@ -1,0 +1,77 @@
+server lte {
+	listen {
+		type = auth
+		ipaddr = *
+		port = 1812
+		limit {
+			max_connections = 16
+			lifetime = 0
+			idle_timeout = 30
+		}
+	}
+	
+	listen {
+		type = acct
+		ipaddr = *
+		port = 1813
+		limit {
+			max_connections = 16
+			lifetime = 0
+			idle_timeout = 30
+		}
+	}
+	
+	authorize {
+		preprocess
+		chap
+		mschap
+		digest
+		suffix
+		sql
+		pap
+	}
+	
+	authenticate {
+		Auth-Type PAP {
+			pap
+		}
+		Auth-Type CHAP {
+			chap
+		}
+		Auth-Type MS-CHAP {
+			mschap
+		}
+		Auth-Type LDAP {
+			ldap
+		}
+		eap
+	}
+	
+	accounting {
+		detail
+		unix
+		sql
+		exec
+		attr_filter.accounting_response
+	}
+	
+	session {
+		sql
+	}
+	
+	post-auth {
+		sql
+		exec
+		Post-Auth-Type REJECT {
+			attr_filter.access_reject
+		}
+	}
+	
+	pre-proxy {
+		pre_proxy_log
+	}
+	
+	post-proxy {
+		post_proxy_log
+	}
+} 

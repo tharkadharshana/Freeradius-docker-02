@@ -98,3 +98,4 @@ trap 'log "Config sync stopped"; exit 0' SIGTERM SIGINT
 # Start main function
 main
 
+

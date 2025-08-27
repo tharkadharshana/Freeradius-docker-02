@@ -1,0 +1,137 @@
+server gpon {
+
+#listen {
+#	type = auth
+#	ipaddr = *
+#	port = 1812
+#	interface = ens256
+#	clients = per_socket_clients
+#	recv_buff = 65536
+#
+#	limit {
+#	      max_connections = 0
+#	      lifetime = 0
+#	      idle_timeout = 30
+#	}
+#}
+
+#listen {
+#	ipaddr = *
+#	ipv6addr = ::
+#	port = 1813
+#	type = acct
+#	interface = ens256
+#	clients = per_socket_clients
+#
+#	limit {
+#		max_pps = 0
+#		idle_timeout = 0
+#		lifetime = 0
+#		max_connections = 0
+#	}
+#}
+
+authorize {
+#	cache
+	gpon_auth_policy
+#	redis
+	chap
+#	preprocess
+#	operator-name
+#	cui
+	gpon_auth_log
+
+	# Look for realms in user@domain format
+#	suffix
+#	ntdomain
+
+}
+
+
+authenticate {
+	Auth-Type CHAP {
+		chap{
+			reject = 1
+		}
+
+		if (reject) {
+			update reply {
+			        Reply-Message := "Password Failure"
+			}
+		}
+	}
+}
+
+
+preacct {
+
+}
+
+accounting {
+	# Add Linelog for CSV accounting logs
+
+	gpon_auth_policy
+	gpon_accounting
+	#
+	#  Return an address to the IP Pool when we see a stop record.
+	#
+	#  Ensure that &control:Pool-Name is set to determine which
+	#  pool of IPs are used.
+#	sqlippool
+}
+
+
+session {
+
+#	radutmp
+#	sql
+
+}
+
+
+post-auth {
+	barred_user_policy
+	max_session_policy		
+	gpon_sql
+
+#	if (ok) {
+#       	    redis
+#        }
+
+        gpon_reply_log
+
+	if (session-state:User-Name && reply:User-Name && request:User-Name && (reply:User-Name == request:User-Name)) {
+		update reply {
+			&User-Name !* ANY
+		}
+	}
+	update {
+		&reply: += &session-state:
+	}
+
+
+#	sqlippool
+
+
+	Post-Auth-Type REJECT {
+		attr_filter.access_reject
+	}
+
+	Post-Auth-Type Challenge {
+
+	}
+
+	Post-Auth-Type Client-Lost {
+
+	}
+}
+
+
+pre-proxy {
+
+}
+
+post-proxy {
+
+}
+}

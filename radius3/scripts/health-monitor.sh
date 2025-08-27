@@ -84,3 +84,4 @@ trap 'log "Health monitor stopped"; exit 0' SIGTERM SIGINT
 # Start main function
 main
 
+

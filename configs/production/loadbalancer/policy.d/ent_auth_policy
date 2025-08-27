@@ -1,0 +1,156 @@
+ent_auth_policy {
+    if (request:Packet-Type == Access-Request) {
+        # Ensure both User-Name and User-Password are provided in the request
+        if (!&User-Name || !&User-Password) {
+            update reply {
+                &Module-Failure-Message += "Missing User-Name or User-Password"
+            }
+            reject
+        }
+    }
+
+    # reject all whitespace
+    # e.g. "user@ site.com", or "us er", or " user", or "user "
+    if (&User-Name =~ / /) {
+        update reply {
+            &Module-Failure-Message += "Invalid User-Name"
+        }
+        reject
+    }
+
+
+    # Check if User-Name contains a domain part
+    if (&User-Name =~ /@/) {
+
+        # reject Multiple @'s
+        # e.g. "user@site.com@site.com"
+        if (&User-Name =~ /@[^@]*@/ ) {
+            update request {
+                &Module-Failure-Message += 'Rejected: Multiple @ in User-Name'
+            }
+            reject
+        }
+
+
+        # reject double dots
+        # e.g. "user@site..com"
+        if (&User-Name =~ /\.\./ ) {
+            update request {
+                &Module-Failure-Message += 'Rejected: User-Name contains multiple ..s'
+            }
+            reject
+        }
+
+
+        # must have at least 1 string-dot-string after @
+        # e.g. "user@site.com"
+        if ((&User-Name =~ /@/) && (&User-Name !~ /@(.+)\.(.+)$/))  {
+            update request {
+                &Module-Failure-Message += 'Rejected: Realm does not have at least one dot separator'
+            }
+            reject
+        }
+
+        # Realm ends with a dot
+        # e.g. "user@site.com."
+        if (&User-Name =~ /\.$/)  {
+            update request {
+                &Module-Failure-Message += 'Rejected: Realm ends with a dot'
+            }
+            reject
+        }
+
+        # Realm begins with a dot
+        # e.g. "user@.site.com"
+        if (&User-Name =~ /@\./)  {
+            update request {
+                &Module-Failure-Message += 'Rejected: Realm begins with a dot'
+            }
+            reject
+        }
+
+        # Extract the portion before '@'
+        if ("%{User-Name}" =~ /^([^@]+)@/) {
+            update request {
+                User-Name := "%{1}"  # Store the part before '@'
+            }
+        } 
+        
+    } else {
+        # Check if Calling-Station-Id and Called-Station-Id are present
+        if (&Calling-Station-Id && &Called-Station-Id) {
+            # Extract MSISDN from Calling-Station-Id
+            update request {
+                Tmp-String-1 := "%{Calling-Station-Id}"
+            }
+
+            # Extract APN from Called-Station-Id
+            update request {
+                Tmp-String-2 := "%{Called-Station-Id}"
+            }
+
+            # Concatenate MSISDN and APN as MSISDN-APN format
+            update request {
+                Tmp-String-3 := "%{Tmp-String-1}-%{Tmp-String-2}"
+            }
+
+
+	    update request {
+                Tmp-String-4 := "%{ent_sql:SELECT USER_ID FROM ENT_MIDDLE WHERE MSISDN_APN = '%{Tmp-String-3}'}"
+            }
+            
+            
+            # If the querY succeeds and returns A result
+            if (&Tmp-String-4 != "") {
+		 # Update User-Name with the fetched USER_ID
+                 update request {
+                    User-Name := &Tmp-String-4
+                 }
+
+            } else {
+                 # MSISDN-APN not found; reject the request
+                 update reply {
+                     &Module-Failure-Message += "MSISDN-APN not found in ENT_MIDDLE table"
+                 }
+                 reject
+            }
+
+        } else {
+            update reply {
+                &Module-Failure-Message += "Missing Calling-Station-Id or Called-Station-Id"
+            }
+            reject
+        }
+    }
+
+ 
+    # Execute the SQL module to retrieve user data
+    ent_sql
+
+
+    if (request:Packet-Type == Access-Request) {
+        # Check if the SQL module successfully found a matching user
+        if (!ok) {
+            # No user found in the database
+            update reply {
+                Reply-Message := "User not found."
+            }
+            reject
+        } else {
+            # If user found in the database
+            update reply {
+                Reply-Message := "Access Accept"
+            }
+            # Check XOR condition for Framed-Address
+            if ( (&reply:Framed-Address && !&request:Framed-Address) || (!&reply:Framed-Address && &request:Framed-Address) ) {
+                update reply {
+                    Framed-Address := "%{reply:Framed-Address}%{request:Framed-Address}"
+                }
+            } else {
+                update reply {
+                    Reply-Message := "Framed-Address conflict or missing"
+                }
+            }
+        }
+    }
+}

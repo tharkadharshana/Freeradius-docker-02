@@ -1,0 +1,117 @@
+sql gpon_sql {
+	dialect = "mysql"
+	driver = "rlm_sql_mysql"
+	mysql {
+		warnings = auto
+	}
+
+	server = "10.62.167.245"
+	port = 3306
+	login = "appserver"
+#	login = "gpon_user"
+	password = "password123"
+#	password = "gpon_password"
+	radius_db = "WIFISYS"
+#	radius_db = "gpon_radius"
+	postauth_table = "GPON_POST_AUTH"
+	session_table = "GPON_SESSION"
+	authcheck_table = "GPON_CHECK"
+	groupcheck_table = "radgroupcheck"
+	authreply_table = "GPON_REPLY"
+	groupreply_table = "radgroupreply"
+	usergroup_table = "radusergroup"
+	delete_stale_sessions = yes
+	pool {
+		start = ${thread[pool].start_servers}
+		min = ${thread[pool].min_spare_servers}
+		max = ${thread[pool].max_servers}
+		spare = ${thread[pool].max_spare_servers}
+		uses = 0
+		retry_delay = 30
+		lifetime = 0
+		idle_timeout = 60
+		max_retries = 5
+	}
+	client_table = "nas"
+	group_attribute = "SQL-Group"
+	$INCLUDE ${modconfdir}/${.:name}/main/${dialect}/gpon_queries.conf
+}
+
+
+sql ent_sql {
+	dialect = "mysql"
+	driver = "rlm_sql_mysql"
+	mysql {
+		warnings = auto
+	}
+
+	server = "10.62.167.245"
+#	server = "localhost"
+	port = 3306
+	login = "appserver"
+#	login = "gpon_user"
+	password = "password123"
+#	password = "gpon_password"
+	radius_db = "WIFISYS"
+#	radius_db = "gpon_radius"
+	acct_table1 = "radacct"
+	acct_table2 = "radacct"
+	postauth_table = "ENT_POST_AUTH"
+	session_table = "ENT_SESSION"
+	authcheck_table = "ENT_CHECK"
+	groupcheck_table = "radgroupcheck"
+	authreply_table = "ENT_REPLY"
+	groupreply_table = "radgroupreply"
+	usergroup_table = "radusergroup"
+	delete_stale_sessions = yes
+	pool {
+		start = ${thread[pool].start_servers}
+		min = ${thread[pool].min_spare_servers}
+		max = ${thread[pool].max_servers}
+		spare = ${thread[pool].max_spare_servers}
+		uses = 0
+		retry_delay = 30
+		lifetime = 0
+		idle_timeout = 60
+		max_retries = 5
+	}
+	client_table = "nas"
+	group_attribute = "SQL-Group"
+	$INCLUDE ${modconfdir}/${.:name}/main/${dialect}/ent_queries.conf
+}
+
+
+sql lte_sql {
+	dialect = "mysql"
+	driver = "rlm_sql_mysql"
+	mysql {
+		warnings = auto
+	}
+
+	server = "10.62.167.245"
+#	server = "localhost"
+	port = 3306
+	login = "appserver"
+#	login = "gpon_user"
+	password = "password123"
+#	password = "gpon_password"
+	radius_db = "WIFISYS"
+#	radius_db = "gpon_radius"
+	postauth_table = "LTE_POST_AUTH"
+	session_table = "LTE_SESSION"
+	delete_stale_sessions = yes
+	pool {
+		start = ${thread[pool].start_servers}
+		min = ${thread[pool].min_spare_servers}
+		max = ${thread[pool].max_servers}
+		spare = ${thread[pool].max_spare_servers}
+		uses = 0
+		retry_delay = 30
+		lifetime = 0
+		idle_timeout = 60
+		max_retries = 5
+	}
+	client_table = "nas"
+	group_attribute = "SQL-Group"
+	$INCLUDE ${modconfdir}/${.:name}/main/${dialect}/lte_queries.conf
+}
