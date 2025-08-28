@@ -27,12 +27,14 @@ fi
 if command -v docker-compose &> /dev/null; then
     DOCKER_COMPOSE_CMD="docker-compose"
     echo -e "${GREEN}✅ Docker Compose v1 detected${NC}"
-elif docker compose version &> /dev/null; then
+elif docker compose &> /dev/null 2>&1; then
     DOCKER_COMPOSE_CMD="docker compose"
     echo -e "${GREEN}✅ Docker Compose v2 detected${NC}"
 else
     echo -e "${RED}❌ Docker Compose is not available. Please install it first.${NC}"
     echo -e "${YELLOW}Note: Docker Compose v2 comes with Docker Desktop and newer Docker installations${NC}"
+    echo -e "${YELLOW}Debug: Testing docker compose commands...${NC}"
+    echo -e "${YELLOW}docker compose: $(docker compose 2>&1 | head -1 || echo 'failed')${NC}"
     exit 1
 fi
 
