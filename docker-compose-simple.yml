@@ -94,9 +94,10 @@ services:
       - KEEPALIVED_VIRTUAL_IP=172.20.0.100
     volumes:
       - /var/log/keepalived:/var/log/keepalived
-    ports:
-      - "1812:1812/udp"  # External RADIUS port managed by Virtual IP
-      - "1813:1813/udp"  # External accounting port managed by Virtual IP
+    # No external ports - LoadBalancer1 handles external RADIUS ports
+    # ports:
+    #   - "1812:1812/udp"  # External RADIUS port managed by LoadBalancer1
+    #   - "1813:1813/udp"  # External accounting port managed by LoadBalancer1
     networks:
       - external
       - internal
@@ -140,12 +141,16 @@ services:
       - EXTERNAL_MYSQL_DATABASE=${EXTERNAL_MYSQL_DATABASE:-radius}
     volumes:
       - radius_logs:/var/log/radius
+    # Internal ports for load balancing - different from external ports
+    ports:
+      - "127.0.0.1:1912:1812/udp"  # Radius1 internal port
+      - "127.0.0.1:1913:1813/udp"  # Radius1 accounting internal port
     networks:
       - internal
       - management
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "radtest", "test", "test", "localhost", "1812", "0", "testing123"]
+      test: ["CMD", "radtest", "test", "test", "localhost", "1812", "testing123"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -167,12 +172,16 @@ services:
       - EXTERNAL_MYSQL_DATABASE=${EXTERNAL_MYSQL_DATABASE:-radius}
     volumes:
       - radius_logs:/var/log/radius
+    # Internal ports for load balancing - different from external ports
+    ports:
+      - "127.0.0.1:2012:1812/udp"  # Radius2 internal port
+      - "127.0.0.1:2013:1813/udp"  # Radius2 accounting internal port
     networks:
       - internal
       - management
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "radtest", "test", "test", "localhost", "1812", "0", "testing123"]
+      test: ["CMD", "radtest", "test", "test", "127.0.0.1", "2012", "testing123"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -194,12 +203,16 @@ services:
       - EXTERNAL_MYSQL_DATABASE=${EXTERNAL_MYSQL_DATABASE:-radius}
     volumes:
       - radius_logs:/var/log/radius
+    # Internal ports for load balancing - different from external ports
+    ports:
+      - "127.0.0.1:2112:1812/udp"  # Radius3 internal port
+      - "127.0.0.1:2113:1813/udp"  # Radius3 accounting internal port
     networks:
       - internal
       - management
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "radtest", "test", "test", "localhost", "1812", "0", "testing123"]
+      test: ["CMD", "radtest", "test", "test", "127.0.0.1", "2112", "testing123"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -222,6 +235,10 @@ services:
       - EXTERNAL_MYSQL_PORT=${EXTERNAL_MYSQL_PORT:-3306}
     volumes:
       - lb1_logs:/var/log/radius
+    # External ports - these should be accessible from outside
+    ports:
+      - "0.0.0.0:1812:1812/udp"  # LoadBalancer1 external auth port
+      - "0.0.0.0:1813:1813/udp"  # LoadBalancer1 external accounting port
     # No external ports - Keepalived manages Virtual IP binding
     networks:
       - external
@@ -234,7 +251,7 @@ services:
       - radius3
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "radtest", "test", "test", "localhost:1812", "0", "testing123"]
+      test: ["CMD", "radtest", "test", "test", "127.0.0.1", "1812", "testing123"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -254,6 +271,10 @@ services:
       - EXTERNAL_MYSQL_PORT=${EXTERNAL_MYSQL_PORT:-3306}
     volumes:
       - lb2_logs:/var/log/radius
+    # Internal ports for failover - different from external ports
+    ports:
+      - "127.0.0.1:1816:1816/udp"  # LoadBalancer2 internal port
+      - "127.0.0.1:1817:1817/udp"  # LoadBalancer2 accounting internal port
     # No external ports - only internal binding for Virtual IP failover
     networks:
       - external
@@ -266,7 +287,7 @@ services:
       - radius3
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "radtest", "test", "test", "localhost", "1812", "0", "testing123"]
+      test: ["CMD", "radtest", "test", "test", "127.0.0.1", "1816", "testing123"]
       interval: 30s
       timeout: 10s
       retries: 3

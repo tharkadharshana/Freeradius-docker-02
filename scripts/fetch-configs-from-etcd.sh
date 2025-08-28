@@ -69,6 +69,7 @@ fetch_all_configs() {
     fetch_config_from_etcd "radiusd.conf"
     fetch_config_from_etcd "clients.conf"
     fetch_config_from_etcd "sql.conf"
+    fetch_config_from_etcd "proxy.conf"
     fetch_config_from_etcd "experimental.conf"
     fetch_config_from_etcd "templates.conf"
     fetch_config_from_etcd "trigger.conf"
