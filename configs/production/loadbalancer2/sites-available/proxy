@@ -6,13 +6,13 @@
 server proxy {
     listen {
         type = auth
-        ipaddr = 172.20.0.100  # Bind to Virtual IP for direct access
+        ipaddr = 172.20.0.100  # Bind to Virtual IP for failover access
         port = 1812
     }
 
     listen {
         type = acct
-        ipaddr = 172.20.0.100  # Bind to Virtual IP for direct access
+        ipaddr = 172.20.0.100  # Bind to Virtual IP for failover access
         port = 1813
     }
 
@@ -32,4 +32,4 @@ server proxy {
     post-proxy {
         # Post-proxy processing
     }
-} 
+}

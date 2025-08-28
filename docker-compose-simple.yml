@@ -44,6 +44,10 @@ volumes:
   # Load balancer logs persistence
   lb_logs:
     driver: local
+  lb1_logs:
+    driver: local
+  lb2_logs:
+    driver: local
 
 services:
   # ============================================================================
@@ -78,36 +82,44 @@ services:
       start_period: 40s
 
   # ============================================================================
-  # FAILOVER ROUTER - Smart routing between load balancers
+  # KEEPALIVED - Virtual IP failover management
   # ============================================================================
-  failover-router:
+  keepalived:
     build:
-      context: ./failover-router
+      context: ./keepalived
       dockerfile: Dockerfile
-    container_name: freeradius-failover-router
+    container_name: freeradius-keepalived
     environment:
-      - PRIMARY_LB=loadbalancer1
-      - BACKUP_LB=loadbalancer2
-      - EXTERNAL_MYSQL_HOST=${EXTERNAL_MYSQL_HOST:-host.docker.internal}
-      - EXTERNAL_MYSQL_PORT=${EXTERNAL_MYSQL_PORT:-3306}
+      - KEEPALIVED_INTERFACE=eth0
+      - KEEPALIVED_VIRTUAL_IP=172.20.0.100
     volumes:
-      - /var/log/failover:/var/log/failover
+      - /var/log/keepalived:/var/log/keepalived
     ports:
-      - "1812:1812/udp"  # Primary RADIUS port
-      - "1813:1813/udp"  # Primary accounting port
+      - "1812:1812/udp"  # External RADIUS port managed by Virtual IP
+      - "1813:1813/udp"  # External accounting port managed by Virtual IP
     networks:
       - external
       - internal
     depends_on:
       - loadbalancer1
       - loadbalancer2
+      - etcd
     restart: unless-stopped
-    privileged: true  # Required for iptables
+    privileged: true  # Required for network interface management
+    cap_add:
+      - NET_ADMIN
+      - NET_BROADCAST
+      - NET_RAW
+      - NET_BIND_SERVICE
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "1812"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "pgrep", "keepalived"]
+      interval: 30s
+      timeout: 10s
       retries: 3
+
+  # ============================================================================
+  # LOAD BALANCER 1 - PRIMARY (Active) - Now using ports 1812/1813
+  # ============================================================================
 
   # ============================================================================
   # RADIUS SERVERS - Individual RADIUS instances
@@ -133,7 +145,7 @@ services:
       - management
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "radtest", "test", "test", "localhost:1812", "0", "testing123"]
+      test: ["CMD", "radtest", "test", "test", "localhost", "1812", "0", "testing123"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -160,7 +172,7 @@ services:
       - management
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "radtest", "test", "test", "localhost:1812", "0", "testing123"]
+      test: ["CMD", "radtest", "test", "test", "localhost", "1812", "0", "testing123"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -187,7 +199,7 @@ services:
       - management
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "radtest", "test", "test", "localhost:1812", "0", "testing123"]
+      test: ["CMD", "radtest", "test", "test", "localhost", "1812", "0", "testing123"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -209,15 +221,14 @@ services:
       - EXTERNAL_MYSQL_HOST=${EXTERNAL_MYSQL_HOST:-host.docker.internal}
       - EXTERNAL_MYSQL_PORT=${EXTERNAL_MYSQL_PORT:-3306}
     volumes:
-      - lb_logs:/var/log/radius
-    ports:
-      - "2812:1812/udp"  # Secondary port for direct access
-      - "2813:1813/udp"
+      - lb1_logs:/var/log/radius
+    # No external ports - Keepalived manages Virtual IP binding
     networks:
       - external
       - internal
       - management
     depends_on:
+      - etcd
       - radius1
       - radius2
       - radius3
@@ -242,21 +253,20 @@ services:
       - EXTERNAL_MYSQL_HOST=${EXTERNAL_MYSQL_HOST:-host.docker.internal}
       - EXTERNAL_MYSQL_PORT=${EXTERNAL_MYSQL_PORT:-3306}
     volumes:
-      - lb_logs:/var/log/radius
-    ports:
-      - "3812:1812/udp"  # Tertiary port for direct access
-      - "3813:1813/udp"
+      - lb2_logs:/var/log/radius
+    # No external ports - only internal binding for Virtual IP failover
     networks:
       - external
       - internal
       - management
     depends_on:
+      - etcd
       - radius1
       - radius2
       - radius3
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "radtest", "test", "test", "localhost:1812", "0", "testing123"]
+      test: ["CMD", "radtest", "test", "test", "localhost", "1812", "0", "testing123"]
       interval: 30s
       timeout: 10s
       retries: 3
