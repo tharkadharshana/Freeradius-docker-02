@@ -109,7 +109,7 @@ echo
 echo -e "${BLUE}To change configurations:${NC}"
 echo -e "1. Edit files in configs/production/"
 echo -e "2. Run ./load-configs-to-etcd-production.sh to reload"
-echo -e "3. Restart containers if needed: docker-compose -f docker-compose-simple.yml restart"
+echo -e "3. Restart containers if needed: $DOCKER_COMPOSE_CMD -f docker-compose-simple.yml restart"
 echo
 echo -e "${BLUE}To test the system:${NC}"
 echo -e "• External access: localhost:1812 (Virtual IP)"
