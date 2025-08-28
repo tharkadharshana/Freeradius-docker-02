@@ -14,10 +14,14 @@ This guide provides complete setup instructions for Linux/RedHat systems to matc
 
 ### **Required Software**
 ```bash
-# Install Docker and Docker Compose
-sudo yum install -y docker docker-compose  # RHEL/CentOS
+# Install Docker (Docker Compose v2 comes with Docker)
+sudo yum install -y docker  # RHEL/CentOS
 # OR
-sudo apt-get install -y docker.io docker-compose  # Ubuntu/Debian
+sudo apt-get install -y docker.io  # Ubuntu/Debian
+
+# For Docker Compose v1 (if needed)
+# sudo yum install -y docker-compose  # RHEL/CentOS
+# sudo apt-get install -y docker-compose  # Ubuntu/Debian
 
 # Start and enable Docker
 sudo systemctl start docker
@@ -90,7 +94,8 @@ vim configs/production/radius1/clients.conf
 ./load-configs-to-etcd-production.sh
 
 # 3. Restart containers (if needed)
-docker-compose -f docker-compose-simple.yml restart
+# For Docker Compose v1: docker-compose -f docker-compose-simple.yml restart
+# For Docker Compose v2: docker compose -f docker-compose-simple.yml restart
 ```
 
 ### **Check ETCD Contents**
@@ -196,7 +201,8 @@ docker ps | grep etcd
 docker logs freeradius-etcd
 
 # Restart ETCD if needed
-docker-compose -f docker-compose-simple.yml restart etcd
+# For Docker Compose v1: docker-compose -f docker-compose-simple.yml restart etcd
+# For Docker Compose v2: docker compose -f docker-compose-simple.yml restart etcd
 ```
 
 #### **4. Keepalived Issues**
@@ -208,7 +214,8 @@ docker exec freeradius-keepalived ps aux | grep keepalived
 docker exec freeradius-keepalived ip addr show
 
 # Restart Keepalived if needed
-docker-compose -f docker-compose-simple.yml restart keepalived
+# For Docker Compose v1: docker-compose -f docker-compose-simple.yml restart keepalived
+# For Docker Compose v2: docker compose -f docker-compose-simple.yml restart keepalived
 ```
 
 ## 🔧 **Advanced Configuration (Linux)**
@@ -219,8 +226,12 @@ docker-compose -f docker-compose-simple.yml restart keepalived
 vim keepalived/keepalived.conf
 
 # Rebuild and restart
-docker-compose -f docker-compose-simple.yml build keepalived
-docker-compose -f docker-compose-simple.yml restart keepalived
+# For Docker Compose v1:
+# docker-compose -f docker-compose-simple.yml build keepalived
+# docker-compose -f docker-compose-simple.yml restart keepalived
+# For Docker Compose v2:
+docker compose -f docker-compose-simple.yml build keepalived
+docker compose -f docker-compose-simple.yml restart keepalived
 ```
 
 ### **Modify Load Balancer Settings**
@@ -232,7 +243,8 @@ vim configs/production/loadbalancer/proxy.conf
 ./load-configs-to-etcd-production.sh
 
 # Restart load balancers
-docker-compose -f docker-compose-simple.yml restart loadbalancer1 loadbalancer2
+# For Docker Compose v1: docker-compose -f docker-compose-simple.yml restart loadbalancer1 loadbalancer2
+# For Docker Compose v2: docker compose -f docker-compose-simple.yml restart loadbalancer1 loadbalancer2
 ```
 
 ## 📈 **Performance Tuning (Linux)**
@@ -288,10 +300,12 @@ sudo sysctl -p
 git pull origin main
 
 # Rebuild containers
-docker-compose -f docker-compose-simple.yml build --no-cache
+# For Docker Compose v1: docker-compose -f docker-compose-simple.yml build --no-cache
+# For Docker Compose v2: docker compose -f docker-compose-simple.yml build --no-cache
 
 # Restart services
-docker-compose -f docker-compose-simple.yml up -d
+# For Docker Compose v1: docker-compose -f docker-compose-simple.yml up -d
+# For Docker Compose v2: docker compose -f docker-compose-simple.yml up -d
 ```
 
 ### **Configuration Backups**

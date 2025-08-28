@@ -23,25 +23,32 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-# Check if docker-compose is available
-if ! command -v docker-compose &> /dev/null; then
-    echo -e "${RED}❌ docker-compose is not installed. Please install it first.${NC}"
+# Check if docker-compose is available (support both v1 and v2)
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+    echo -e "${GREEN}✅ Docker Compose v1 detected${NC}"
+elif docker compose version &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker compose"
+    echo -e "${GREEN}✅ Docker Compose v2 detected${NC}"
+else
+    echo -e "${RED}❌ Docker Compose is not available. Please install it first.${NC}"
+    echo -e "${YELLOW}Note: Docker Compose v2 comes with Docker Desktop and newer Docker installations${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Docker and docker-compose are available${NC}"
+echo -e "${GREEN}✅ Docker and Docker Compose are available${NC}"
 echo
 
 echo -e "${YELLOW}Step 1: Stopping existing containers...${NC}"
-docker-compose -f docker-compose-simple.yml down -v
+$DOCKER_COMPOSE_CMD -f docker-compose-simple.yml down -v
 
 echo
 echo -e "${YELLOW}Step 2: Building new containers with ETCD + Keepalived support...${NC}"
-docker-compose -f docker-compose-simple.yml build --no-cache
+$DOCKER_COMPOSE_CMD -f docker-compose-simple.yml build --no-cache
 
 echo
 echo -e "${YELLOW}Step 3: Starting ETCD first...${NC}"
-docker-compose -f docker-compose-simple.yml up -d etcd
+$DOCKER_COMPOSE_CMD -f docker-compose-simple.yml up -d etcd
 
 echo
 echo -e "${YELLOW}Step 4: Waiting for ETCD to be ready...${NC}"
@@ -58,7 +65,7 @@ bash load-configs-to-etcd-production.sh
 
 echo
 echo -e "${YELLOW}Step 6: Starting all FreeRADIUS services...${NC}"
-docker-compose -f docker-compose-simple.yml up -d
+$DOCKER_COMPOSE_CMD -f docker-compose-simple.yml up -d
 
 echo
 echo -e "${YELLOW}Step 7: Waiting for services to start and stabilize...${NC}"
@@ -66,7 +73,7 @@ sleep 15
 
 echo
 echo -e "${YELLOW}Step 8: Checking service status...${NC}"
-docker ps
+$DOCKER_COMPOSE_CMD -f docker-compose-simple.yml ps
 
 echo
 echo -e "${YELLOW}Step 9: Testing ETCD connectivity from containers...${NC}"
