@@ -1,0 +1,45 @@
+# -*- text -*-
+##
+## proxy -- proxy requests to backend RADIUS servers
+##
+
+server proxy {
+    listen {
+        type = auth
+        ipaddr = 0.0.0.0  # Bind to all interfaces for internal access
+        port = 1812
+    }
+
+    listen {
+        type = acct
+        ipaddr = 0.0.0.0  # Bind to all interfaces for internal access
+        port = 1813
+    }
+
+    authorize {
+        preprocess
+        suffix
+        # Use the DEFAULT realm which will proxy to backend RADIUS servers
+        # The DEFAULT realm is configured in proxy.conf to use radius1 for auth
+        # No manual Home-Server-Pool needed - let the realm system handle it
+    }
+
+    authenticate {
+        # Authentication is handled by backend servers via proxy
+        # The realm system will automatically route to the appropriate home server
+    }
+
+    pre-proxy {
+        # Pre-proxy processing
+    }
+
+    post-proxy {
+        # Post-proxy processing
+    }
+
+    accounting {
+        # Accounting is handled by backend servers via proxy
+        # The DEFAULT realm is configured to use radius2 for accounting
+        # No manual Home-Server-Pool needed - let the realm system handle it
+    }
+} 
