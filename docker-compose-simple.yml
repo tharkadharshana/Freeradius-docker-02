@@ -149,12 +149,13 @@ services:
       - internal
       - management
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "radtest", "test", "test", "localhost", "1812", "testing123"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    # Health check removed to prevent test/test packets
+    # healthcheck:
+    #   test: ["CMD", "radtest", "test", "test", "localhost", "1812", "testing123"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
 
   radius2:
     build:
@@ -180,12 +181,13 @@ services:
       - internal
       - management
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "radtest", "test", "test", "127.0.0.1", "2012", "testing123"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    # Health check removed to prevent test/test packets
+    # healthcheck:
+    #   test: ["CMD", "radtest", "test", "test", "127.0.0.1", "2012", "testing123"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
 
   radius3:
     build:
@@ -211,12 +213,13 @@ services:
       - internal
       - management
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "radtest", "test", "test", "127.0.0.1", "2112", "testing123"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    # Health check removed to prevent test/test packets
+    # healthcheck:
+    #   test: ["CMD", "radtest", "test", "test", "127.0.0.1", "2112", "testing123"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
 
   # ============================================================================
   # LOAD BALANCERS - High Availability with failover
@@ -250,12 +253,13 @@ services:
       - radius2
       - radius3
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "radtest", "test", "test", "127.0.0.1", "1812", "testing123"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    # Health check removed to prevent test/test packets
+    # healthcheck:
+    #   test: ["CMD", "radtest", "test", "test", "127.0.0.1", "1812", "testing123"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
 
   loadbalancer2:
     build:
@@ -286,12 +290,13 @@ services:
       - radius2
       - radius3
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "radtest", "test", "test", "127.0.0.1", "1816", "testing123"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    # Health check removed to prevent test/test packets
+    # healthcheck:
+    #   test: ["CMD", "radtest", "test", "test", "127.0.0.1", "1816", "testing123"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
 
   # ============================================================================
   # OPTIONAL MONITORING SERVICES (Commented out for simple testing)

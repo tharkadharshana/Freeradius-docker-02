@@ -1,0 +1,7 @@
+VENDOR          AAA-SaaS            26
+
+BEGIN-VENDOR    AAA-SaaS
+
+ATTRIBUTE       Acct-Attr-Json                  1   string
+
+END-VENDOR      AAA-SaaS

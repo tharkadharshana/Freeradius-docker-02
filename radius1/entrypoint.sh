@@ -14,14 +14,6 @@ fi
 
 echo "✅ Configurations fetched successfully"
 
-# Create necessary symlinks
-echo "Creating symbolic links..."
-rm -f /opt/etc/raddb/sites-enabled/status
-rm -f /opt/etc/raddb/sites-enabled/default
-ln -sf /opt/etc/raddb/sites-available/status /opt/etc/raddb/sites-enabled/status
-ln -sf /opt/etc/raddb/sites-available/default /opt/etc/raddb/sites-enabled/default
-ln -sf /opt/etc/raddb/sites-available/inner-tunnel /opt/etc/raddb/sites-enabled/inner-tunnel
-
 # Find the correct path for radiusd
 RADIUSD_PATH=$(which radiusd || echo "/opt/sbin/radiusd")
 

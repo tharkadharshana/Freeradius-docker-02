@@ -74,30 +74,43 @@ fetch_all_configs() {
     fetch_config_from_etcd "templates.conf"
     fetch_config_from_etcd "trigger.conf"
 
-    # Fetch mods-available files - only try a few key ones
+    # Fetch mods-available files
     fetch_config_from_etcd "mods-available/sql"
+    fetch_config_from_etcd "mods-available/json"
+    fetch_config_from_etcd "mods-available/pap"
     fetch_config_from_etcd "mods-available/always"
     fetch_config_from_etcd "mods-available/realm"
     fetch_config_from_etcd "mods-available/preprocess"
 
-    # Fetch mods-config files - only try a few key ones
+    # Fetch mods-enabled files (CRITICAL - these are the active modules)
+    fetch_config_from_etcd "mods-enabled/sql"
+    fetch_config_from_etcd "mods-enabled/json"
+    fetch_config_from_etcd "mods-enabled/pap"
+
+    # Fetch mods-config files
     fetch_config_from_etcd "mods-config/sql/connection"
     fetch_config_from_etcd "mods-config/sql/main"
     fetch_config_from_etcd "mods-config/attr_filter/access_reject"
     fetch_config_from_etcd "mods-config/attr_filter/access_challenge"
 
-    # Fetch policy.d files - only try a few key ones
+    # Fetch policy.d files
     fetch_config_from_etcd "policy.d/accounting"
     fetch_config_from_etcd "policy.d/authentication"
 
-    # Fetch sites-available files - only try a few key ones
+    # Fetch sites-available files
     fetch_config_from_etcd "sites-available/default"
     fetch_config_from_etcd "sites-available/inner-tunnel"
     fetch_config_from_etcd "sites-available/status"
     fetch_config_from_etcd "sites-available/proxy"
 
+    # Fetch sites-enabled files (CRITICAL - these are the active sites)
+    fetch_config_from_etcd "sites-enabled/default"
+    fetch_config_from_etcd "sites-enabled/inner-tunnel"
+    fetch_config_from_etcd "sites-enabled/status"
+
     # Fetch dictionary files
     fetch_config_from_etcd "dict/dictionary"
+    fetch_config_from_etcd "dict/dictionary.aaasaas"
 
     echo "Configuration fetching completed for $SERVICE_NAME"
 }
