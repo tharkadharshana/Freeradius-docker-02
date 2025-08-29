@@ -6,30 +6,34 @@
 server proxy {
     listen {
         type = auth
-        ipaddr = 0.0.0.0  # Bind to all interfaces for internal access
+        ipaddr = 0.0.0.0  # Bind to all interfaces for external access
         port = 1812
     }
 
     listen {
         type = acct
-        ipaddr = 0.0.0.0  # Bind to all interfaces for internal access
+        ipaddr = 0.0.0.0  # Bind to all interfaces for external access
         port = 1813
     }
 
     authorize {
         preprocess
         suffix
+        # Force all requests to be proxied to backend servers
+        update control {
+            &Proxy-To-Realm := "DEFAULT"
+        }
     }
 
     authenticate {
-        # Authentication is handled by backend servers
+        # Authentication is handled by backend servers via proxy
     }
 
     pre-proxy {
-        # Pre-proxy processing
+        # Log the request before forwarding
     }
 
     post-proxy {
-        # Post-proxy processing
+        # Log the response after receiving from backend
     }
 } 

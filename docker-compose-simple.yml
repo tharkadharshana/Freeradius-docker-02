@@ -119,6 +119,10 @@ services:
       retries: 3
 
   # ============================================================================
+  # LOAD BALANCER 1 - PRIMARY (Active) - Now using ports 1812/1813
+  # ============================================================================
+
+  # ============================================================================
   # RADIUS SERVERS - Individual RADIUS instances
   # ============================================================================
   radius1:
@@ -235,6 +239,7 @@ services:
     ports:
       - "0.0.0.0:1812:1812/udp"  # LoadBalancer1 external auth port
       - "0.0.0.0:1813:1813/udp"  # LoadBalancer1 external accounting port
+    # No external ports - Keepalived manages Virtual IP binding
     networks:
       - external
       - internal
