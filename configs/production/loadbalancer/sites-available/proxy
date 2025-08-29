@@ -29,6 +29,20 @@ server proxy {
         # Authentication is handled by backend servers via proxy
     }
 
+    preacct {
+        # Pre-accounting processing
+        preprocess
+        # Force accounting packets to be proxied to backend servers
+        update control {
+            &Proxy-To-Realm := "DEFAULT"
+        }
+    }
+
+    accounting {
+        # Accounting is handled by backend servers via proxy
+        # The proxy.conf realm configuration will handle load balancing
+    }
+
     pre-proxy {
         # Log the request before forwarding
     }
