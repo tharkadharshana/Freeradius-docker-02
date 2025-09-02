@@ -1,0 +1,4 @@
+User-Name = "test"
+Acct-Status-Type = Start
+Acct-Session-Id = "12345"
+NAS-IP-Address = 127.0.0.1

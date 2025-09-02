@@ -40,6 +40,10 @@ server proxy {
     accounting {
         # Accounting is handled by backend servers via proxy
         # The proxy.conf realm configuration will handle load balancing
+        # Force accounting packets to be proxied to backend servers
+        update control {
+            &Proxy-To-Realm := "DEFAULT"
+        }
     }
 
     pre-proxy {
