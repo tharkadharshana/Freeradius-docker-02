@@ -18,7 +18,6 @@ server proxy {
 
     authorize {
         preprocess
-        suffix
         # Force all requests to be proxied to backend servers
         update control {
             &Proxy-To-Realm := "DEFAULT"

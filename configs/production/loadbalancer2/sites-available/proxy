@@ -18,18 +18,35 @@ server proxy {
 
     authorize {
         preprocess
-        suffix
+        # Force all requests to be proxied to backend servers
+        update control {
+            &Proxy-To-Realm := "DEFAULT"
+        }
     }
 
     authenticate {
-        # Authentication is handled by backend servers
+        # Authentication is handled by backend servers via proxy
+    }
+
+    preacct {
+        # Pre-accounting processing
+        preprocess
+        # Force accounting packets to be proxied to backend servers
+        update control {
+            &Proxy-To-Realm := "DEFAULT"
+        }
+    }
+
+    accounting {
+        # Accounting is handled by backend servers via proxy
+        # The proxy.conf realm configuration will handle load balancing
     }
 
     pre-proxy {
-        # Pre-proxy processing
+        # Log the request before forwarding
     }
 
     post-proxy {
-        # Post-proxy processing
+        # Log the response after receiving from backend
     }
 }
